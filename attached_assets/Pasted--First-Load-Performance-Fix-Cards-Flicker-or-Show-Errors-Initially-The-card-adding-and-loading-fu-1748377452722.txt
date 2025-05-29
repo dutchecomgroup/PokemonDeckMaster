@@ -1,0 +1,50 @@
+⚙️ First-Load Performance Fix: Cards Flicker or Show Errors Initially
+The card adding and loading functionality is now working, but there is still a noticeable performance and visual issue during the first load of a collection or after adding new cards.
+
+❌ Current Issue (First Load Only):
+On the initial load of the collection (or right after adding new cards):
+
+Cards first appear with errors, such as “image unavailable” or stuck on “Loading…”
+
+After a short delay, they correct themselves and load normally
+
+This issue does not happen on subsequent loads or after navigating away and back.
+
+It creates a bad first impression and a flickering, unpolished feel — especially when adding multiple cards.
+
+🔍 Likely Cause:
+The frontend is rendering cards before the required data (especially image URLs) is available.
+
+There is no loading guard or intermediate state during the very first render.
+
+After the initial render, cached data or synced state corrects the issue, which is why it works fine afterwards.
+
+✅ What Needs to Be Improved:
+1. Add a Proper First-Load Guard
+Ensure cards don’t render until required fields like imageUrl are ready:
+
+js
+Kopiëren
+Bewerken
+if (!card || !card.image) return <LoadingSkeletonCard />;
+Show a skeleton or loading shimmer instead of an error state on first load.
+
+2. Avoid Premature Rendering
+Delay rendering each card until the backend response is complete and all metadata is available.
+
+Consider wrapping the grid in a container that waits for all data before showing the cards.
+
+3. Preload or Prefetch Data If Possible
+Use caching or prefetching strategies to reduce load time for images and metadata.
+
+Optionally preload known assets on page entry if the collection was recently updated.
+
+4. Limit Layout Reflows
+Avoid full-grid flickering by using isolated re-renders and React.memo() or equivalent.
+
+🎯 Goal:
+Ensure that the first load of cards appears cleanly, without error placeholders or flickering.
+
+Deliver a fast, smooth experience from the first interaction, with no visible sync delay or correction lag.
+
+Cards should render confidently with complete data, creating a polished feel even on the initial view.

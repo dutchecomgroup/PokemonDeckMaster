@@ -1,0 +1,19 @@
+OBILE DEBUG] Final mapped cards: 4 of 4
+chunk-RPCDYKBN.js?v=ab6194d4:521 Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+    at MyCollection (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/pages/MyCollection.tsx:30:27)
+    at Route (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ab6194d4:338:16)
+    at ProtectedRoute (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/components/ProtectedRoute.tsx:22:3)
+    at Switch (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ab6194d4:394:17)
+    at main
+    at div
+    at Layout (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/components/Layout.tsx:23:19)
+    at AppWithGlobalNav (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/App.tsx?v=NSOqnyisqGmQK9lr-T7Jl:73:74)
+    at GlobalNavProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/context/GlobalNavContext.tsx:20:37)
+    at CollectionProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/context/CollectionContext.tsx:27:38)
+    at AuthProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/hooks/useAuth.tsx:26:32)
+    at AppRouter
+    at Provider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=ab6194d4:38:15)
+    at TooltipProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=ab6194d4:62:5)
+    at ThemeProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/context/ThemeContext.tsx:20:33)
+    at QueryClientProvider (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=ab6194d4:2881:3)
+    at App (https://82577490-9f69-4366-b1d2-c778227431cb-00-b10rkhba6bol.spock.replit.dev/src/App.tsx?v=NSOqnyisqGmQK9lr-T7Jl:214:37)

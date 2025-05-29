@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon TCG DeckMaster - Beheer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <a href="homepage.html"><i class="fas fa-dragon"></i> TCG DeckMaster</a>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="homepage.html"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="collection-manager.html" class="active"><i class="fas fa-archive"></i> Collectie Beheer</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="active-view-indicator container">
+        Huidige Weergave: <strong id="currentViewName">Welkom</strong>
+        <span id="activeCollectionIndicator" style="display:none;">| Actieve Collectie: <strong id="activeCollectionNameGlobal">-</strong></span>
+    </div>
+
+    <div class="page-top-controls container">
+        <button id="openCreateCollectionModalBtn" class="control-button primary-accent-button"><i class="fas fa-plus-square"></i> Nieuwe Collectie</button>
+        <div class="active-collection-selector-wrapper">
+            <label for="activeCollectionSelect"><i class="fas fa-folder-open"></i> Actieve Collectie:</label>
+            <select id="activeCollectionSelect">
+                <option value="">Kies een collectie...</option>
+            </select>
+        </div>
+        <button id="deleteCollectionButton" class="control-button danger-button" style="display:none;"><i class="fas fa-trash"></i> Verwijder Collectie</button>
+    </div>
+
+    <main class="container layout-container">
+        <aside class="sidebar">
+             <div class="sidebar-section">
+                <h3 class="sidebar-title"><i class="fas fa-eye"></i> Bekijk Je Bezit</h3>
+                <button id="viewMyCollectedCardsBtn" class="control-button full-width-button primary-accent-button"><i class="fas fa-id-badge"></i> Mijn Verzamelde Kaarten</button>
+                 <p class="small-text">Toon alleen de kaarten in je actieve collectie.</p>
+            </div>
+            <hr class="sidebar-divider">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title"><i class="fas fa-layer-group"></i> Blader door Sets</h3>
+                <input type="text" id="setListFilterInput" class="sidebar-filter-input" placeholder="Filter sets op naam...">
+                <div id="setListContainer" class="set-list-sidebar">
+                    <p class="loading-indicator small-indicator"><i class="fas fa-spinner fa-spin"></i> Sets laden...</p>
+                </div>
+                 <p class="small-text">Selecteer een set om alle kaarten ervan te zien.</p>
+            </div>
+            <hr class="sidebar-divider">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title"><i class="fas fa-search"></i> Algemeen Kaarten Zoeken</h3>
+                <p class="small-text">Vind specifieke kaarten, ook met code (bv. "PAL 123").</p>
+                <div class="filter-group">
+                    <label for="generalSearchInput">Zoekterm / Kaartcode:</label>
+                    <input type="text" id="generalSearchInput" placeholder="Naam, nummer, of code...">
+                </div>
+                <div class="filter-group">
+                    <label for="generalTypeFilter">Type:</label>
+                    <select id="generalTypeFilter"><option value="">Alle Types</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="generalRarityFilter">Zeldzaamheid:</label>
+                    <select id="generalRarityFilter"><option value="">Alle Zeldzaamheden</option></select>
+                </div>
+                <button id="generalSearchButton" class="control-button full-width-button"><i class="fas fa-search"></i> Zoeken</button>
+                <button id="resetGeneralSearchButton" class="control-button secondary-button full-width-button"><i class="fas fa-times"></i> Reset</button>
+            </div>
+            <hr class="sidebar-divider">
+            <div id="setProgressionSidebar" class="sidebar-section set-progression-container">
+                <h3 class="sidebar-title"><i class="fas fa-chart-pie"></i> Set Progressie</h3>
+                <div class="progress-content">
+                    <p>Selecteer een collectie.</p>
+                </div>
+            </div>
+        </aside>
+
+        <section class="content-area">
+            <div id="setViewerSection" class="content-section" style="display: none;">
+                <div class="set-viewer-header">
+                    <div class="set-title-container">
+                        <img id="setSelectedSetLogo" src="" alt="Set Logo" class="set-logo-header" style="display:none;">
+                        <div> <!-- Wrapper voor titel en symbool -->
+                           <h2 id="setSelectedSetName"><i class="fas fa-swatchbook"></i> <span>-</span></h2>
+                           <img id="setSelectedSetSymbol" src="" alt="Set Symbool" class="set-symbol-header-small" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="set-view-controls">
+                        <input type="text" id="searchInSetInput" placeholder="Filter op naam/nr...">
+                        <select id="setViewerTypeFilter" title="Filter op type in deze set">
+                            <option value="">Alle Types</option>
+                        </select>
+                        <select id="setViewerRarityFilter" title="Filter op zeldzaamheid in deze set">
+                            <option value="">Alle Zeldzaamheden</option>
+                        </select>
+                        <button id="toggleCardViewBtn" class="control-button icon-button" title="Wissel kaartweergave">
+                            <i class="fas fa-th-list"></i> <span class="view-mode-text">Compact</span>
+                        </button>
+                         <button id="sortSetCardsBtn" class="control-button icon-button" title="Sorteer kaarten">
+                            <i class="fas fa-sort-numeric-down"></i> <span class="sort-mode-text">Nummer</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="setLoadingMessage" class="loading-indicator" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Set kaarten laden...</div>
+                <div id="setCardGrid" class="card-grid compact-image-view"></div>
+            </div>
+
+            <div id="myCollectedCardsViewerSection" class="content-section" style="display: none;">
+                 <div class="section-header">
+                    <h2><i class="fas fa-id-badge"></i> Mijn Verzamelde Kaarten (<span id="myCollectedCardsCount">0</span>)</h2>
+                    <div class="my-collected-controls">
+                        <input type="text" id="searchInMyCollectionInput" placeholder="Filter mijn kaarten...">
+                        <select id="filterMyCollectionBySet"> <option value="">Alle Sets in Collectie</option> </select>
+                         <button id="sortMyCollectedCardsBtn" class="control-button icon-button" title="Sorteer mijn kaarten">
+                            <i class="fas fa-sort-alpha-down"></i> <span class="sort-mode-text">Naam</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="myCollectedCardsLoadingMessage" class="loading-indicator" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Kaarten laden...</div>
+                <div id="myCollectedCardsGrid" class="card-grid compact-image-view">
+                </div>
+            </div>
+
+            <div id="generalSearchResultsSection" class="content-section" style="display: none;">
+                 <div class="section-header">
+                    <h2><i class="fas fa-search-plus"></i> Algemene Zoekresultaten</h2>
+                 </div>
+                 <div id="generalSearchLoadingMessage" class="loading-indicator" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Zoeken...</div>
+                 <div id="generalSearchResultsGrid" class="card-grid compact-image-view"></div>
+            </div>
+
+            <div id="welcomeMessageSection" class="content-section welcome-message" style="display: block;">
+                <h2><i class="fas fa-magic-wand-sparkles"></i> Welkom bij je TCG DeckMaster!</h2>
+                <p>Organiseer en ontdek je Pokémon kaartenverzameling als nooit tevoren.</p>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Selecteer of maak een <a href="#" id="focusCreateCollectionLinkWelcome">nieuwe collectie</a> aan.</li>
+                    <li><i class="fas fa-check-circle"></i> Kies een set in de linkerbalk om alle kaarten te bekijken.</li>
+                    <li><i class="fas fa-check-circle"></i> Klik op "Mijn Verzamelde Kaarten" om alleen jouw bezit te zien.</li>
+                    <li><i class="fas fa-check-circle"></i> Pas de hoeveelheden aan die je bezit.</li>
+                </ul>
+                <p>Veel verzamelplezier!</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="createCollectionModal" class="modal"> <div class="modal-content"> <button class="close-modal-btn" aria-label="Sluit venster"><i class="fas fa-times"></i></button> <h2>Nieuwe Collectie Aanmaken</h2> <div class="form-group"> <label for="newCollectionName">Naam Collectie:</label> <input type="text" id="newCollectionName" placeholder="Bijv. Paldean Fates Master Set"> </div> <div class="form-group"> <label for="newCollectionLanguage">Taal (optioneel):</label> <select id="newCollectionLanguage"> <option value="">N.v.t.</option> <option value="Engels">Engels</option> <option value="Japans">Japans</option> </select> </div> <button id="createCollectionBtn" class="control-button primary-accent-button full-width-button"><i class="fas fa-save"></i> Aanmaken & Selecteren</button> </div> </div>
+    <div id="cardDetailModal" class="modal card-detail-modal"> <div class="modal-content"> <button class="close-modal-btn" aria-label="Sluit venster"><i class="fas fa-times"></i></button> <div class="card-detail-layout"> <div class="card-detail-image-container"> <img id="modalCardImage" src="" alt="Kaartafbeelding"> </div> <div class="card-detail-info"> <h2 id="modalCardName">-</h2> <div class="info-grid"> <p><strong>Set:</strong> <span id="modalCardSet">-</span></p> <p><strong>Nummer:</strong> <span id="modalCardNumber">-</span></p> <p><strong>Zeldzaamheid:</strong> <span id="modalCardRarity">-</span></p> <p><strong>Type(s):</strong> <span id="modalCardTypes">-</span></p> <p><strong>HP:</strong> <span id="modalCardHp">-</span></p> </div> <div id="modalCardAttacks" class="card-attacks-section"><h3>Aanvallen/Abilities</h3></div> <div class="modal-quantity-controls"> <h4>In Collectie: <span id="modalCardCollectionName">-</span></h4> <div class="quantity-controls"> <button id="modalQuantityDecrease" class="control-button" aria-label="Verminder aantal"><i class="fas fa-minus"></i></button> <span id="modalQuantityDisplay" class="quantity-display">0</span> <button id="modalQuantityIncrease" class="control-button" aria-label="Verhoog aantal"><i class="fas fa-plus"></i></button> </div> </div> <a id="modalTcgPlayerLink" href="#" target="_blank" class="tcgplayer-link" style="display:none;">Bekijk op TCGPlayer <i class="fas fa-external-link-alt"></i></a> </div> </div> </div> </div>
+
+    <footer> <div class="container"> <p>&copy; <span id="currentYear"></span> TCG DeckMaster. API: <a href="https://pokemontcg.io" target="_blank" rel="noopener noreferrer">pokemontcg.io</a>.</p> </div> </footer>
+    <div id="toastNotification" class="toast-notification"> <span id="toastMessage"></span> </div>
+
+    <script src="script.js"></script>
+    <script>
+        const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+        const mainNav = document.querySelector('.main-nav');
+        if (mobileNavToggle && mainNav) {
+            mobileNavToggle.addEventListener('click', () => {
+                mainNav.classList.toggle('active');
+                mobileNavToggle.setAttribute('aria-expanded', mainNav.classList.contains('active'));
+            });
+        }
+        if(document.getElementById('currentYear')) {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        }
+        const focusLinkWelcome = document.getElementById('focusCreateCollectionLinkWelcome');
+        const openModalBtnGlobal = document.getElementById('openCreateCollectionModalBtn');
+        if(focusLinkWelcome && openModalBtnGlobal) {
+            focusLinkWelcome.addEventListener('click', (e) => {
+                e.preventDefault();
+                openModalBtnGlobal.click();
+            });
+        }
+    </script>
+</body>
+</html>

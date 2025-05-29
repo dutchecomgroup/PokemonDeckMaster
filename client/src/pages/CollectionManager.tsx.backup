@@ -1,0 +1,515 @@
+import React, { useState, useEffect } from 'react';
+import Sidebar from '@/components/Sidebar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { PlusCircle, FolderOpen, Trash2, CheckCircle, Search, Calendar, Globe, Pencil } from 'lucide-react';
+import CollectionForm from '@/components/CollectionForm';
+import { useCollectionContext } from '@/context/CollectionContext';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+
+// Add global type for showToast function
+declare global {
+  interface Window {
+    showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  }
+}
+
+const CollectionManager: React.FC = () => {
+  const { collections, activeCollection, setActiveCollection, deleteCollection, updateCollection } = useCollectionContext();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [collectionToDelete, setCollectionToDelete] = useState<number | null>(null);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [collectionToRename, setCollectionToRename] = useState<number | null>(null);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const { toast } = useToast();
+  
+  // Function to get random Pokemon types for visual decorations
+  const getRandomPokemonType = () => {
+    const types = ['fire', 'water', 'grass', 'electric', 'psychic', 'fairy', 'dragon', 'dark', 'steel', 'fighting'];
+    return types[Math.floor(Math.random() * types.length)];
+  };
+  
+  // Generate a background gradient class based on Pokemon type
+  const getGradientClass = (type: string) => {
+    switch(type) {
+      case 'fire': return 'from-red-600/40 to-orange-500/30';
+      case 'water': return 'from-blue-600/40 to-cyan-500/30';
+      case 'grass': return 'from-green-600/40 to-emerald-500/30';
+      case 'electric': return 'from-yellow-600/40 to-amber-500/30';
+      case 'psychic': return 'from-purple-600/40 to-pink-500/30';
+      case 'fairy': return 'from-pink-600/40 to-rose-500/30';
+      case 'dragon': return 'from-indigo-600/40 to-blue-500/30';
+      case 'dark': return 'from-slate-700/40 to-gray-600/30';
+      case 'steel': return 'from-slate-500/40 to-gray-400/30';
+      case 'fighting': return 'from-red-700/40 to-orange-600/30';
+      default: return 'from-blue-600/40 to-violet-500/30';
+    }
+  };
+  
+  // Assign a random type to each collection for visual variety
+  const [collectionTypes, setCollectionTypes] = useState<Record<number, string>>({});
+  
+  useEffect(() => {
+    // Generate random types for collections that don't have one assigned yet
+    const newTypes: Record<number, string> = {...collectionTypes};
+    collections.forEach(collection => {
+      if (!newTypes[collection.id]) {
+        newTypes[collection.id] = getRandomPokemonType();
+      }
+    });
+    setCollectionTypes(newTypes);
+  }, [collections]);
+  
+  const handleDeleteCollection = async () => {
+    if (collectionToDelete === null) return;
+    
+    try {
+      await deleteCollection(collectionToDelete);
+      
+      toast({
+        title: "Collection deleted",
+        description: "Collection has been successfully removed",
+      });
+      
+      setCollectionToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete collection:', error);
+      
+      toast({
+        title: "Failed to delete",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameCollection = async () => {
+    if (collectionToRename === null || !newCollectionName.trim()) return;
+    
+    try {
+      const collectionToUpdate = collections.find(c => c.id === collectionToRename);
+      if (!collectionToUpdate) return;
+      
+      await updateCollection({
+        ...collectionToUpdate,
+        name: newCollectionName.trim()
+      });
+      
+      toast({
+        title: "Collection renamed",
+        description: "Collection has been successfully renamed",
+      });
+      
+      setIsRenameModalOpen(false);
+      setCollectionToRename(null);
+      setNewCollectionName('');
+    } catch (error) {
+      console.error('Failed to rename collection:', error);
+      
+      toast({
+        title: "Failed to rename",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openRenameModal = (collectionId: number, name: string) => {
+    setCollectionToRename(collectionId);
+    setNewCollectionName(name);
+    setIsRenameModalOpen(true);
+  };
+
+  // Filter collections based on selected tab
+  const filteredCollections = selectedTab === 'all' 
+    ? collections 
+    : collections.filter(c => c.language.toLowerCase() === selectedTab);
+  
+  // Group languages for tabs
+  const languages = Array.from(new Set(collections.map(c => c.language)));
+  
+  // Format date in a more readable way
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  };
+  
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Sidebar wrapper with fixed height and scrolling */}
+      <div className="lg:w-96 lg:flex-shrink-0 lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:pr-4">
+        <Sidebar />
+      </div>
+      
+      <div className="flex-grow">
+        {/* Hero section with background pattern */}
+        <div className="relative mb-6 overflow-hidden rounded-xl bg-sky-100 border border-sky-200 text-sky-900">
+          <div className="absolute inset-0 opacity-10 pointer-events-none pattern-pokeballs"></div>
+          <div className="relative p-6 md:p-8">
+            <div className="max-w-3xl">
+              <h1 className="text-2xl md:text-3xl font-bold mb-3 text-sky-800">Pokémon Card Collections</h1>
+              <p className="text-sky-700 md:w-3/4">
+                Organize your Pokémon cards into custom collections. Group by expansion set, type, rarity, or create your own organization system.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-5">
+                <Button onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-sky-600 hover:bg-sky-700 text-white shadow-md border-0"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" /> Create New Collection
+                </Button>
+                {activeCollection && (
+                  <Button 
+                    variant="outline"
+                    className="bg-white hover:bg-sky-50 text-sky-700 border-sky-300"
+                    onClick={() => {
+                      if (activeCollection) {
+                        window.location.href = `/my-collection?id=${activeCollection.id}`;
+                      }
+                    }}
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" /> View Current Collection
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-6">
+          {/* Collections Section */}
+          <Card className="overflow-hidden border-border">
+            <CardHeader className="bg-card pb-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5 text-primary" /> Your Collections
+                  </CardTitle>
+                  <CardDescription>
+                    Manage and organize your Pokémon card collections
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="self-start sm:self-auto"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" /> New Collection
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Language tabs */}
+              {collections.length > 0 && languages.length > 1 && (
+                <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab} className="mt-4">
+                  <TabsList className="bg-muted/50 p-1 h-auto">
+                    <TabsTrigger value="all" className="text-xs h-8 px-3 data-[state=active]:bg-background">
+                      All Collections ({collections.length})
+                    </TabsTrigger>
+                    {languages.map(lang => (
+                      <TabsTrigger 
+                        key={lang} 
+                        value={lang.toLowerCase()} 
+                        className="text-xs h-8 px-3 data-[state=active]:bg-background"
+                      >
+                        {lang} ({collections.filter(c => c.language === lang).length})
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              )}
+            </CardHeader>
+            
+            <CardContent className="pt-4">
+              {/* Active collection display */}
+              {activeCollection && (
+                <div className="mb-5 p-4 rounded-lg bg-sky-50 border border-sky-200 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-sky-100/50 to-transparent pointer-events-none"></div>
+                  <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <Badge className="mb-1 bg-sky-500 hover:bg-sky-500 text-white border-0">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Active Collection
+                      </Badge>
+                      <h3 className="text-lg font-semibold text-gray-900">{activeCollection.name}</h3>
+                      <p className="text-sm text-gray-700 flex items-center mt-1">
+                        <Globe className="h-3.5 w-3.5 mr-1" />
+                        {activeCollection.language.charAt(0).toUpperCase() + activeCollection.language.slice(1)}
+                        <span className="mx-2">•</span>
+                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                        {formatDate(activeCollection.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-sky-500 hover:bg-sky-600 text-white border-0"
+                        onClick={() => {
+                          if (activeCollection) {
+                            window.location.href = `/my-collection?id=${activeCollection.id}`;
+                          }
+                        }}
+                      >
+                        <FolderOpen className="h-4 w-4 mr-1.5" /> Open Collection
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white text-sky-600 border-sky-200 hover:bg-sky-50"
+                        onClick={() => openRenameModal(activeCollection.id, activeCollection.name)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1.5" /> Rename
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white text-sky-600 border-sky-200 hover:bg-sky-50"
+                        onClick={() => {
+                          window.location.href = `/statistics?collectionId=${activeCollection.id}`;
+                        }}
+                      >
+                        <i className="fas fa-chart-bar h-4 w-4 mr-1.5"></i> Statistics
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="bg-red-600 hover:bg-red-700">
+                            <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-card text-foreground border-border">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Collection</AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground">
+                              Are you sure you want to delete "{activeCollection.name}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-muted text-foreground hover:bg-muted/80">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => deleteCollection(activeCollection.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {collections.length === 0 ? (
+                <div className="py-8 text-center bg-muted/20 rounded-lg border border-dashed border-muted">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-4">
+                    <FolderOpen className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium text-foreground mb-2">No Collections Yet</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto mb-5 text-sm">
+                    Create your first collection to start organizing your Pokémon card collection.
+                    Group cards by language, type, or any custom category.
+                  </p>
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={() => setIsCreateModalOpen(true)}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" /> Create First Collection
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredCollections.map(collection => {
+                    const collectionType = collectionTypes[collection.id] || 'normal';
+                    const gradientClass = getGradientClass(collectionType);
+                    return (
+                      <div 
+                        key={collection.id}
+                        className={`rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 ${
+                          activeCollection?.id === collection.id 
+                            ? 'ring-2 ring-sky-500 border border-sky-500' 
+                            : 'border border-gray-200'
+                        } cursor-pointer`}
+                        onClick={() => setActiveCollection(collection.id)}
+                      >
+                        <div className={`h-3 bg-gradient-to-r ${gradientClass}`}></div>
+                        
+                        <div className="p-4 bg-white">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-semibold text-gray-800 truncate">{collection.name}</h3>
+                              <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
+                                <Globe className="h-3 w-3" />
+                                {collection.language.charAt(0).toUpperCase() + collection.language.slice(1)}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              {activeCollection?.id === collection.id ? (
+                                <Badge className="bg-sky-100 text-sky-700 border-sky-200 h-6">
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Active
+                                </Badge>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-7 text-sky-600 hover:bg-sky-50 hover:text-sky-700 border-sky-200" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveCollection(collection.id);
+                                  }}
+                                >
+                                  <FolderOpen className="h-3.5 w-3.5 mr-1.5" /> Set Active
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 flex flex-col gap-2">
+                            {/* Date and small buttons */}
+                            <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-2">
+                              <span className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {formatDate(collection.createdAt)}
+                              </span>
+                              
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-gray-500 hover:text-sky-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openRenameModal(collection.id, collection.name);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="h-6 px-2 text-gray-500 hover:text-red-600"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="bg-card border-border text-foreground">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Collection</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-muted-foreground">
+                                        Are you sure you want to delete "{collection.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteCollection(collection.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex gap-1 mt-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex-1 h-7 text-xs bg-sky-500 hover:bg-sky-600 text-white border-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.location.href = `/my-collection?id=${collection.id}`;
+                                }}
+                              >
+                                <FolderOpen className="h-3 w-3 mr-1" /> Open
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 h-7 text-xs text-sky-600 border-sky-200 hover:bg-sky-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.location.href = `/statistics?collectionId=${collection.id}`;
+                                }}
+                              >
+                                <i className="fas fa-chart-bar h-3 w-3 mr-1"></i> Stats
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      
+      {/* Create Collection Modal */}
+      {isCreateModalOpen && (
+        <CollectionForm 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+        />
+      )}
+
+      {/* Rename Collection Dialog */}
+      <Dialog open={isRenameModalOpen} onOpenChange={setIsRenameModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Collection</DialogTitle>
+            <DialogDescription>
+              Enter a new name for your collection
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input 
+                id="name" 
+                value={newCollectionName} 
+                onChange={(e) => setNewCollectionName(e.target.value)} 
+                className="col-span-3"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenameModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameCollection} disabled={!newCollectionName.trim()}>
+              <Pencil className="h-4 w-4 mr-1.5" /> Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default CollectionManager;

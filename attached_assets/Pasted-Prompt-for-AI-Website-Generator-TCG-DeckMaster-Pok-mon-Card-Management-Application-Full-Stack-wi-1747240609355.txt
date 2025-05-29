@@ -1,0 +1,181 @@
+Prompt for AI Website Generator: TCG DeckMaster - Pokémon Card Management Application (Full-Stack with Auth & DB)
+Objective:
+Create a full-stack web application named "TCG DeckMaster" that allows users to manage their Pokémon Trading Card Game (TCG) collections. Users must be able to register, log in, create collections, add cards to their collections, track their card quantities, browse TCG sets, and upload/manage photos of their physical cards to record their condition. User data, including collections and card photos, must be stored in a server-side database.
+Core Technologies (Suggestions - AI may choose appropriate alternatives):
+Frontend: HTML, CSS, JavaScript (Vanilla JS or a simple framework like Svelte/Vue if the AI deems it beneficial for complexity management).
+Backend: Choose a suitable backend stack (e.g., Node.js with Express.js, Python with Django/Flask, Ruby on Rails).
+Database: Choose a suitable database (e.g., PostgreSQL, MongoDB, MySQL).
+Authentication: Implement user registration and login (e.g., using JWT, sessions, or a service like Firebase Authentication).
+Image Storage (for user card photos): Cloud storage solution (e.g., AWS S3, Google Cloud Storage, Cloudinary, Firebase Storage).
+Data API: Pokémon TCG API (https://api.pokemontcg.io/v2) for card information and set listings.
+API Key: The application will require an API key for pokemontcg.io. Use the placeholder YOUR_API_KEY in the generated code. For testing purposes, the key caba87e4-c0fd-435e-b7e4-d01f58760d99 can be used if directly implementing based on this prompt. API calls to pokemontcg.io should ideally be proxied through the backend to protect the API key and manage rate limits.
+Styling: Modern, clean, and responsive design. Use Font Awesome for icons.
+Application Structure & Pages:
+Authentication Pages:
+register.html: User registration form (e.g., email, password, confirm password).
+login.html: User login form (e.g., email, password).
+Logic for password reset functionality (e.g., "Forgot Password" link leading to an email-based reset flow) is a plus but not critical for the first version.
+Main Application Pages (Accessible after login):
+homepage.html: Landing page after login. Displays an overview, highlights, and quick access.
+collection-manager.html: Core page for managing collections and viewing cards.
+(Potentially a profile.html or settings.html for user-specific settings, e.g., changing password, managing API keys if applicable – low priority for first version).
+Shared UI Elements (on authenticated pages):
+Header:
+Logo: "TCG DeckMaster" with a dragon icon (fas fa-dragon). Links to homepage.html.
+Navigation Menu:
+"Home" (fas fa-home): Links to homepage.html.
+"Collection Management" (fas fa-archive): Links to collection-manager.html.
+"Logout" button/link.
+Mobile navigation toggle (fas fa-bars).
+Footer:
+Copyright notice with current year.
+Link to data provider: pokemontcg.io.
+Toast Notifications: For user feedback (success, error, info messages).
+Page 1: homepage.html - Features and Layout (Post-Login)
+Hero Section:
+Catchy title (e.g., "Your Pokémon Cards, Perfectly Organized.") and subtitle.
+Call-to-action buttons:
+"Open Collection Management" (links to collection-manager.html).
+"View My Collections" (smooth scroll link to "My Saved Collections" section).
+Section: "Featured from Your Collections" (Dynamic - from User's DB Data)
+Title: e.g., "Featured from Your Collections" (fas fa-sparkles).
+Grid display (card-grid compact-image-view) of a few (e.g., 4-8) random cards from the logged-in user's collections stored in the database.
+Each card shows image, name, card number, rarity. No quantity controls.
+If no cards/collections, display a message like "Add cards to your collections to see them featured here!"
+This section is hidden if the user has no collections/cards.
+Section: "Discover New Cards" (Dynamic - from Pokémon TCG API)
+Title: e.g., "Discover New Cards" (fas fa-search-dollar).
+Grid display of a few (e.g., 4-8) random/interesting cards fetched from the Pokémon TCG API.
+Each card shows image, name, card number, rarity.
+Section: "My Saved Collections" (Dynamic - from User's DB Data)
+Title: e.g., "My Saved Collections" (fas fa-box-archive).
+Grid display of cards representing the user's saved collections.
+Each "collection card" displays: Collection Name, optional Language, number of unique cards, number of unique sets.
+"Open Collection" button linking to collection-manager.html (potentially with a query parameter or route for the specific collection).
+If no collections, display an appropriate message.
+Section: "Powerful Features" (Static)
+Grid display of 3-4 feature blocks (Icon, Title, Description - e.g., Advanced Search, Set Browsing, Progress Tracking, Flexible Display).
+Section: Call to Action (Static)
+Title and text encouraging further use.
+"Manage Collection" button linking to collection-manager.html.
+JavaScript for homepage.js (Client-Side):
+Mobile navigation toggle.
+Dynamic footer year.
+Smooth scroll for internal links.
+Functions to fetch and display:
+User's saved collections (via backend API call).
+Featured cards from user's collections (via backend API call).
+Discoverable cards (via backend API call, proxied to Pokémon TCG API).
+Page 2: collection-manager.html - Features and Layout (Post-Login)
+Layout:
+Two-column layout: Sidebar (left) and Content Area (right).
+Top of Page (below header):
+Active View Indicator: Displays current view and active collection name (if selected).
+Page Top Controls:
+Button: "New Collection" (fas fa-plus-square) - opens a modal.
+Dropdown: "Active Collection" (fas fa-folder-open) - lists user's saved collections (from DB). Selecting sets the active collection for the session.
+Button: "Delete Collection" (fas fa-trash) - visible if a collection is active. Requires confirmation.
+Sidebar (Left):
+Section: "View Your Assets"
+Button: "My Collected Cards" (fas fa-id-badge) - displays all cards from the active collection in the Content Area.
+Section: "Browse Sets"
+Input field: Filter sets by name.
+Container (setListContainer): Lists all Pokémon TCG sets, grouped by year (newest first), fetched from Pokémon TCG API (via backend proxy). Each set shows symbol, name, release date. Clicking a set loads its cards into the Content Area (Set Viewer).
+Section: "General Card Search"
+Input field: Search term (name, number) or card code.
+Dropdown: Filter by Type (populated from Pokémon TCG API via backend).
+Dropdown: Filter by Rarity (populated from Pokémon TCG API via backend).
+Buttons: "Search", "Reset". Results displayed in Content Area.
+Section: "Set Progression"
+Displays progress (owned/total) for sets where the user owns cards in the active collection. Clicking a set loads it in the Set Viewer.
+Content Area (Right) - Dynamic Sections:
+Set Viewer Section (setViewerSection, initially hidden):
+Header: Set Logo (large) & Symbol (small), Set Name.
+Controls:
+Input: Filter cards within the current set by name/number.
+Dropdowns: Filter by Type, Rarity (options populated based on cards in current set).
+Dropdown: Filter by Ownership ("All Cards", "My Cards", "Not in Collection") relative to the active collection.
+Dropdown: Display Mode ("Compact", "Full Image").
+Dropdown: Sort Order ("Number (asc/desc)", "Name (A-Z/Z-A)").
+Card Grid (setCardGrid): Displays cards from the selected set.
+Each card item: Image, Number, Name (links to Card Detail Modal), Rarity icon.
+"User Photo Attached" icon (fas fa-image): Visible if user has an uploaded photo for this card in the active collection.
+"Manage Photo" button/icon (fas fa-camera-retro): Always visible. Opens Card Detail Modal for this card, focused on photo management.
+Quantity controls (+/- buttons, count) to manage owned quantity in active collection. Disabled if no active collection.
+My Collected Cards Section (myCollectedCardsViewerSection, initially hidden):
+Header: Title with total collected card count.
+Controls: Input (filter name/number), Dropdown (filter by Set - from active collection's sets), Dropdown (Display Mode), Dropdown (Sort Order: "Name (A-Z/Z-A)", "Set, then Number", "Number (asc)").
+Card Grid (myCollectedCardsGrid): Displays cards from the active collection. Item structure идентична Set Viewer.
+General Search Results Section (generalSearchResultsSection, initially hidden):
+Header: Title.
+Card Grid (generalSearchResultsGrid): Displays search results. Item structure идентична Set Viewer.
+Welcome Message Section (welcomeMessageSection, initially visible):
+Welcome text and tips. Link to open "New Collection" modal.
+Modals:
+New Collection Modal (createCollectionModal):
+Input: Collection Name (required).
+Dropdown: Language (optional: English, Japanese, N/A).
+Button: "Create & Select".
+Card Detail Modal (cardDetailModal):
+Displays details of a selected card.
+Left Column: Large card image (API), User's uploaded photo preview (if exists) with "Remove Photo" button.
+Right Column:
+Card Name (H2).
+Info Grid: Set, Number, Rarity, Type(s), HP, "Evolves from:" (if applicable).
+Attacks/Abilities section.
+User Photo Section:
+Title: "Your Photo of Card Condition".
+Button/Label: "Choose File" (hidden <input type="file">).
+Button: "Take Photo" - activates camera.
+Camera Section (initially hidden): <video> for feed, hidden <canvas>, "Snap Photo" & "Stop Camera" buttons.
+Quantity Controls for active collection.
+TCGPlayer link (if API provides).
+Backend API Endpoints (Illustrative - AI to design specifics):
+Authentication:
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/logout
+GET /api/auth/session (to check if user is logged in)
+Collections (CRUD for the logged-in user):
+GET /api/collections (get all collections for user)
+POST /api/collections (create new collection)
+PUT /api/collections/:collectionId (update collection metadata - e.g., name, language)
+DELETE /api/collections/:collectionId (delete collection)
+Collected Cards (within a collection):
+GET /api/collections/:collectionId/cards (get all cards in a specific collection) - This might be part of the main collection data.
+POST /api/collections/:collectionId/cards (add a card, set quantity, or update quantity)
+DELETE /api/collections/:collectionId/cards/:cardApiId (remove a card, effectively setting quantity to 0)
+User Card Photos:
+POST /api/collections/:collectionId/cards/:cardApiId/photo (upload user photo for a card). Backend handles storing the image (e.g., to cloud storage) and associating its URL/reference with the card in the database.
+DELETE /api/collections/:collectionId/cards/:cardApiId/photo (delete user photo).
+Pokémon TCG API Proxy (Optional but Recommended):
+GET /api/tcg/sets
+GET /api/tcg/cards (for set browsing and general search)
+GET /api/tcg/cards/:cardApiId (for card details)
+GET /api/tcg/types
+GET /api/tcg/rarities
+These backend endpoints would make the actual calls to https://api.pokemontcg.io/v2 using the server-stored API key.
+Database Schema (Conceptual - AI to design specifics):
+Users: id, email (unique), password_hash, created_at, updated_at.
+Collections: id, user_id (foreign key to Users), name, language, created_at, updated_at.
+CollectedCards: id, collection_id (foreign key to Collections), card_api_id (string, from Pokémon TCG API), quantity, user_image_url (nullable, URL to cloud-stored image), card_data_snapshot (JSONB/TEXT, to store basic card info like name, set, number, small image URL for quick display without re-fetching from TCG API every time).
+Client-Side JavaScript (script.js for collection-manager.html):
+Authentication Handling: Functions to call backend login/register/logout APIs. Manage user session (e.g., store JWT in localStorage/sessionStorage or use cookies). Redirect unauthenticated users to login.
+API Interaction: All data operations (collections, cards, photos) now go through backend API calls (fetch to your own backend endpoints).
+State Management:
+allCollections, activeCollectionId are now populated from backend data for the logged-in user.
+cachedAPIData for Pokémon TCG API data (sets, types, rarities) can still be useful client-side, but consider if some of this should be backend-cached too. Full card details (cardDetails) should be fetched as needed, potentially cached client-side briefly.
+Core Functions (adapted from previous version to use backend APIs):
+assignDOMElements, initializePrimaryData (fetches sets/types/rarities via backend proxy).
+Collection Management: Now makes API calls to create/read/update/delete user's collections.
+Set Viewer: Fetches set cards via backend proxy.
+Card Quantity Updates: Makes API calls to update quantity in the user's collection in the DB.
+User Photo Upload/Delete: Makes API calls to backend endpoints that handle image storage and DB updates.
+Camera functionality: getUserMedia remains client-side, but the resulting image data is sent to the backend for storage.
+Other UI functions (sorting, filtering, modals, etc.) will largely remain client-side but operate on data fetched from the backend.
+Key Considerations for the AI:
+Security: Emphasize secure password hashing on the backend, protection against XSS/CSRF, and proper handling of API keys.
+Error Handling: Robust error handling on both frontend and backend.
+User Experience: Smooth transitions, clear feedback, and intuitive navigation.
+Scalability (Backend): While not the primary focus of the prompt, the backend design should allow for future scaling if needed.
+Asynchronous Operations: Proper use of async/await or Promises for all I/O operations (API calls, DB queries).

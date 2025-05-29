@@ -1,0 +1,45 @@
+🐛 Bug: Cards Not Showing in Mobile Collection View, But Visible in Collection Preview
+There is a critical inconsistency between the mobile collection overview and the full mobile collection view.
+
+❌ Problem Description:
+On mobile, when viewing the collections overview, the 3-card preview correctly shows cards that were added — even those added from desktop.
+
+However, when opening the full collection view on mobile:
+
+Some of those same cards (especially those added from desktop) do not appear.
+
+The collection appears incomplete or empty, even though the data exists and is shown elsewhere.
+
+On desktop, the full collection view is correct and complete.
+
+✅ What This Confirms:
+The cards are stored correctly in the backend.
+
+The collection preview on mobile fetches and displays the correct data.
+
+The issue is isolated to the mobile full collection view, which likely uses different logic for fetching or rendering.
+
+🔍 Suspected Causes:
+The mobile collection view is not re-fetching the full collection when opened — it may rely on a stale or local version of the state.
+
+A slice, limit, or screen-specific query/filter may be restricting the number of cards shown.
+
+The cards may be in the data object but not rendered due to layout, visibility, or conditional rendering issues.
+
+There could be inconsistent fetch logic between the preview view and full detail view.
+
+✅ What Needs to Be Fixed:
+Ensure the full collection view on mobile always fetches fresh, complete data from the backend when opened.
+
+Remove or fix any slice(), limit, or viewport-based logic that may unintentionally restrict card display.
+
+Confirm that the mobile detail view and the desktop view use the same data-fetching logic and render structure.
+
+Inspect the rendering logic on mobile: log the number of cards fetched, and ensure all are passed into the card rendering loop.
+
+🎯 Goal:
+Make the mobile collection view display the exact same cards as desktop and the overview preview.
+
+Guarantee that cards added from any device are reliably shown on all platforms.
+
+Eliminate any caching, stale state, or layout bugs preventing correct rendering.

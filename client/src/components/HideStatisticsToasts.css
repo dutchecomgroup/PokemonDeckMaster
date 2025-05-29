@@ -1,0 +1,14 @@
+/* Custom styles to hide loading toasts on statistics page */
+.on-statistics-page [role="status"] {
+  display: none !important;
+}
+
+/* Hide toast group elements completely when on statistics page */
+.on-statistics-page [data-sonner-toast-group] {
+  display: none !important;
+}
+
+/* Ensure that critical messages can still show through */
+.on-statistics-page [data-variant="destructive"] {
+  display: flex !important;
+}

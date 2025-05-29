@@ -1,0 +1,676 @@
+import React from 'react';
+import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useCollectionContext } from '@/context/CollectionContext';
+import { fetchSets, searchCards } from '@/api/pokemonTCG';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Users, Database, FolderOpen, Calendar, Trophy } from 'lucide-react';
+
+// Declare showToast for TypeScript
+declare global {
+  interface Window {
+    showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
+  }
+}
+
+const Home: React.FC = () => {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { collections, activeCollection, getCollectionCardObjects, addCardToCollection } = useCollectionContext();
+  
+  const [quickAddCode, setQuickAddCode] = useState('');
+  const [quickAddResults, setQuickAddResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [addingCard, setAddingCard] = useState<string | null>(null);
+  const [featuredSets, setFeaturedSets] = useState<any[]>([]);
+  
+  // Fetch the latest sets for the Featured Sets section
+  const { data: sets = [] } = useQuery({
+    queryKey: ['/api/sets'],
+    queryFn: () => fetchSets(),
+  });
+  
+  // Featured cards query - get some popular/rare cards
+  const [featuredCards, setFeaturedCards] = useState<{ data: any[] }>({ data: [] });
+  
+  // Fetch website statistics
+  const { data: siteStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['/api/stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/stats');
+      if (!response.ok) {
+        throw new Error('Failed to fetch website statistics');
+      }
+      return response.json();
+    }
+  });
+  
+  // Fetch featured cards on component mount - completely random selection
+  useEffect(() => {
+    const fetchFeaturedCards = async () => {
+      try {
+        // Fetch a set of completely random cards
+        const fetchRandomCards = async () => {
+          // Get 4 random cards by using various search parameters that will return diverse results
+          const randomSearches = [
+            // Random basic Pokémon
+            { query: 'supertype:pokemon subtypes:basic', page: Math.floor(Math.random() * 20) + 1 },
+            // Random evolution Pokémon
+            { query: 'supertype:pokemon subtypes:stage1,stage2', page: Math.floor(Math.random() * 10) + 1 },
+            // Random rare cards
+            { query: 'rarity:rare,holo,ultra', page: Math.floor(Math.random() * 15) + 1 },
+            // Random cards from newer sets
+            { query: 'set.series:sword,swsh,rebel,astral,silver', page: Math.floor(Math.random() * 10) + 1 }
+          ];
+          
+          // Get a random set of cards
+          let allRandomCards: any[] = [];
+          
+          // Process each search query to get some cards
+          for (const search of randomSearches) {
+            try {
+              // Get multiple cards from each search type
+              const apiUrl = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(search.query)}&page=${search.page}&pageSize=5`;
+              const response = await fetch(apiUrl);
+              const data = await response.json();
+              
+              if (data.data && data.data.length > 0) {
+                // Get a random card from the results
+                const randomCard = data.data[Math.floor(Math.random() * data.data.length)];
+                allRandomCards.push(randomCard);
+              }
+            } catch (err) {
+              console.error("Error in random card search:", err);
+            }
+          }
+          
+          // Make sure we have the cards we need
+          if (allRandomCards.length < 4) {
+            try {
+              // Fallback to get any Pokémon cards if we don't have enough
+              const apiUrl = `https://api.pokemontcg.io/v2/cards?q=supertype:pokemon&page=${Math.floor(Math.random() * 50) + 1}&pageSize=${8 - allRandomCards.length}`;
+              const response = await fetch(apiUrl);
+              const data = await response.json();
+              
+              if (data.data && data.data.length > 0) {
+                allRandomCards = [...allRandomCards, ...data.data];
+              }
+            } catch (err) {
+              console.error("Error in fallback card search:", err);
+            }
+          }
+          
+          // Return up to 4 random cards
+          return allRandomCards.slice(0, 4);
+        };
+        
+        const randomCards = await fetchRandomCards();
+        
+        // Set the random cards in the featured cards state
+        setFeaturedCards({ data: randomCards, totalCount: randomCards.length });
+      } catch (error) {
+        console.error("Error fetching featured cards:", error);
+      }
+    };
+    
+    fetchFeaturedCards();
+  }, []);
+  
+  // Get 4 random sets for the featured section
+  const getRandomSets = (allSets: any[], count: number) => {
+    if (allSets.length <= count) return [...allSets];
+    
+    const shuffled = [...allSets].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+  
+  // Set featured sets when sets are loaded (only once)
+  useEffect(() => {
+    if (sets.length > 0 && featuredSets.length === 0) {
+      setFeaturedSets(getRandomSets(sets, 4));
+    }
+  }, [sets, featuredSets.length]);
+  
+  // Handle quick add search
+  const handleQuickAddSearch = async () => {
+    if (quickAddCode.trim().length < 3) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await searchCards(quickAddCode, [], '', 1, 5);
+      setQuickAddResults(results.data);
+    } catch (error) {
+      console.error('Error searching cards:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Search as user types with debounce
+  useEffect(() => {
+    const debounceTimeout = setTimeout(() => {
+      if (quickAddCode.trim().length >= 3) {
+        handleQuickAddSearch();
+      } else {
+        setQuickAddResults([]);
+      }
+    }, 300);
+    
+    return () => clearTimeout(debounceTimeout);
+  }, [quickAddCode]);
+  
+  // Add card to collection
+  const handleAddCard = async (cardId: string) => {
+    if (!activeCollection) {
+      alert("Please select an active collection first");
+      return;
+    }
+    
+    setAddingCard(cardId);
+    try {
+      await addCardToCollection(cardId);
+      // Show success message
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Card added to collection: ${activeCollection.name}`, 'success');
+      }
+    } catch (error) {
+      console.error('Failed to add card:', error);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Failed to add card to collection', 'error');
+      }
+    } finally {
+      setAddingCard(null);
+    }
+  };
+  
+  // Function to add a card to the active collection
+  const addToCollection = (cardId: string) => {
+    if (!activeCollection) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Please select an active collection first', 'error');
+      }
+      return;
+    }
+    
+    addCardToCollection(cardId)
+      .then(() => {
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Card added to collection: ${activeCollection.name}`, 'success');
+        }
+      })
+      .catch((error) => {
+        console.error('Error adding card to collection:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('Failed to add card to collection', 'error');
+        }
+      });
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Completely new Pokémon-themed banner with purple styling */}
+      <div className="relative rounded-xl overflow-hidden shadow-2xl">
+        {/* Dynamic vibrant purple background with effect layers - FIXED WITH DARKER COLORS */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-800 via-purple-700 to-indigo-800 overflow-hidden opacity-100">
+          {/* Background texture pattern for depth */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptNi02aDZ2LTZoLTZ2NnptLTYgMGg2di02aC02djZ6TTI0IDI0aDZ2LTZoLTZ2NnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40"></div>
+          
+          {/* Top decorative shape */}
+          <div className="absolute -top-24 left-0 right-0 h-48 bg-gradient-to-b from-violet-500 to-transparent rounded-b-[100%] transform rotate-1"></div>
+          
+          {/* Left side decorative shape */}
+          <div className="absolute -left-20 top-1/4 w-40 h-96 bg-gradient-to-r from-indigo-600/50 to-transparent rounded-full transform -rotate-12"></div>
+          
+          {/* Bottom decorative energy wave */}
+          <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-indigo-600/30 to-transparent"></div>
+          
+          {/* Additional background coloring to ensure visibility */}
+          <div className="absolute inset-0 bg-purple-900/80"></div>
+          
+          {/* Texture overlay */}
+          <div className="absolute inset-0 opacity-30 mix-blend-soft-light">
+            <svg width="100%" height="100%" viewBox="0 0 800 450" preserveAspectRatio="none">
+              <filter id="roughPaper">
+                <feTurbulence type="fractalNoise" baseFrequency="0.04" result="noise" />
+                <feDiffuseLighting in="noise" lightingColor="#8b5cf6" surfaceScale="2">
+                  <feDistantLight azimuth="45" elevation="60" />
+                </feDiffuseLighting>
+              </filter>
+              <rect width="100%" height="100%" filter="url(#roughPaper)" />
+            </svg>
+          </div>
+          
+          {/* Animated Poké Balls - different sizes and positions */}
+          <div className="absolute bottom-10 right-5 w-14 h-14 opacity-60 animate-float-pokeball">
+            <div className="relative w-full h-full">
+              <div className="absolute inset-0 top-0 h-1/2 rounded-t-full bg-purple-500 border-2 border-white/30"></div>
+              <div className="absolute inset-0 bottom-0 top-1/2 h-1/2 rounded-b-full bg-white border-2 border-white/30"></div>
+              <div className="absolute inset-0 h-3 top-[calc(50%-1.5px)] bg-white/30"></div>
+              <div className="absolute left-1/2 top-1/2 w-5 h-5 bg-white rounded-full -ml-2.5 -mt-2.5 border border-white/30"></div>
+            </div>
+          </div>
+          
+          <div className="absolute top-12 left-10 w-10 h-10 opacity-40 animate-float-pokeball-alt">
+            <div className="relative w-full h-full">
+              <div className="absolute inset-0 top-0 h-1/2 rounded-t-full bg-purple-500 border-2 border-white/30"></div>
+              <div className="absolute inset-0 bottom-0 top-1/2 h-1/2 rounded-b-full bg-white border-2 border-white/30"></div>
+              <div className="absolute inset-0 h-2 top-[calc(50%-1px)] bg-white/30"></div>
+              <div className="absolute left-1/2 top-1/2 w-3 h-3 bg-white rounded-full -ml-1.5 -mt-1.5 border border-white/30"></div>
+            </div>
+          </div>
+          
+          {/* Dynamic energy wave */}
+          <div className="absolute right-0 top-1/3 w-2/3 h-20 bg-gradient-to-l from-violet-500/30 to-transparent rounded-l-full transform -rotate-6"></div>
+          
+          {/* Shimmer effect (subtle wavering animation) */}
+          <div className="absolute inset-0 opacity-40 animate-day-night"></div>
+        </div>
+        
+        {/* Main content with enhanced styling */}
+        <div className="relative p-8 md:p-10">
+          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
+            {/* Left content section */}
+            <div className="z-10 max-w-2xl">
+              {/* Dynamic title section with special effects */}
+              <div className="mb-6">
+                <div className="relative">
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
+                    Welcome back,
+                  </h1>
+                  <div className="flex items-center mt-1">
+                    <span className="inline-block text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-violet-300 via-indigo-200 to-violet-300 bg-clip-text text-transparent drop-shadow-lg">
+                      {user?.username || 'Trainer'}
+                    </span>
+                    <span className="ml-2 text-4xl text-white">!</span>
+                  </div>
+                  
+                  {/* Trainer badge */}
+                  <div className="absolute -right-4 -top-4 bg-violet-500 text-white text-xs font-bold px-2 py-1 rounded-full transform rotate-12 shadow-lg hidden md:block">
+                    TRAINER
+                  </div>
+                </div>
+                
+                <p className="text-white/90 dark:text-white/95 mt-4 max-w-xl text-lg leading-relaxed">
+                  Your personal Pokémon TCG collection manager. Track your cards, explore sets, and manage your collection all in one place.
+                </p>
+              </div>
+              
+              {/* Call to action buttons with enhanced styling */}
+              <div className="flex flex-wrap gap-4 mt-2">
+                <Button 
+                  onClick={() => setLocation('/my-collection')}
+                  className="bg-violet-400 hover:bg-violet-300 text-indigo-900 font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border-0 relative overflow-hidden group"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-violet-300 to-violet-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="14" x="3" y="8" rx="2" ry="2" />
+                      <path d="M8 2v4" />
+                      <path d="M16 2v4" />
+                      <path d="M12 10v6" />
+                      <path d="M9 13h6" />
+                    </svg>
+                    View Collection
+                  </span>
+                </Button>
+                
+                <Button 
+                  onClick={() => setLocation('/search')}
+                  variant="outline"
+                  className="bg-indigo-900/20 text-white hover:bg-indigo-900/30 border-violet-400 font-semibold px-6 py-3 rounded-lg shadow-lg transition-all duration-200 relative overflow-hidden group"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-900/0 to-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Search Cards
+                  </span>
+                </Button>
+              </div>
+            </div>
+            
+            {/* Right content: Featured cards with enhanced presentation */}
+            <div className="relative flex-shrink-0 z-10">
+              <div className="relative">
+                {/* Main featured card with animation and glow effect */}
+                <div className="relative transform transition-all duration-500 hover:scale-105 cursor-pointer">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-violet-400 to-indigo-300 opacity-75 blur rounded-lg"></div>
+                  <img 
+                    src="https://images.pokemontcg.io/sv4/186_hires.png" 
+                    alt="Featured Mewtwo Card" 
+                    className="relative w-48 md:w-52 rounded-lg border-2 border-violet-400/50 shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-300"
+                    onClick={() => setLocation('/search')}
+                    loading="eager"
+                  />
+                </div>
+                
+                {/* Secondary card for layered effect */}
+                <div className="absolute -bottom-4 -left-6 w-40 h-60 rounded-lg bg-gradient-to-br from-purple-800 to-indigo-900 opacity-60 -z-10 transform -rotate-6 shadow-xl"></div>
+                
+                {/* Pokéball symbol overlay */}
+                <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-white dark:bg-gray-200 rounded-full border-4 border-purple-900 dark:border-purple-800 shadow-lg z-20">
+                  <div className="absolute inset-0 h-2 top-1/2 -mt-1 bg-purple-900 dark:bg-purple-800"></div>
+                  <div className="absolute left-1/2 top-1/2 w-4 h-4 bg-white dark:bg-gray-200 rounded-full border-2 border-purple-900 dark:border-purple-800 -ml-2 -mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Stats/Quick Actions Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-card border-border shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-[268px]">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-500 h-1.5 w-full"></div>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
+              <div className="h-9 w-9 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                <i className="fas fa-id-badge text-indigo-600 dark:text-indigo-300"></i>
+              </div>
+              Collection Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow pb-2">
+            <div className="space-y-2.5 text-sm mt-2">
+              <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-700 pb-2">
+                <span className="text-gray-500 dark:text-gray-400">Total Collections:</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-200">{collections.length}</span>
+              </div>
+              {activeCollection && (
+                <>
+                  <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-700 pb-2">
+                    <span className="text-gray-500 dark:text-gray-400">Active Collection:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[130px]">{activeCollection.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 dark:text-gray-400">Cards in Collection:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{getCollectionCardObjects().length}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="pt-1 pb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 font-medium"
+              onClick={() => setLocation('/collection')}
+            >
+              <i className="fas fa-cog mr-2"></i> Manage Collections
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card className="bg-card border-border shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-[268px]">
+          <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-1.5 w-full"></div>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
+              <div className="h-9 w-9 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                <i className="fas fa-search text-purple-600 dark:text-purple-300"></i>
+              </div>
+              Quick Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow pb-2">
+            <div className="space-y-3 mt-2">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-search text-gray-400 dark:text-gray-500 group-focus-within:text-purple-500 transition-colors"></i>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Card name or number..."
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700 rounded-lg py-2.5 pl-10 pr-3 text-sm focus:ring-2 focus:ring-purple-400 focus:border-purple-400 focus:outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const value = (e.target as HTMLInputElement).value;
+                      if (value.trim()) {
+                        const params = new URLSearchParams();
+                        params.append('query', value.trim());
+                        setLocation(`/search?${params.toString()}`);
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0 pb-4 mt-auto">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700 font-medium"
+              onClick={() => setLocation('/search')}
+            >
+              <i className="fas fa-sliders-h mr-2"></i> Advanced Search
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card className="bg-card border-border shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-[268px]">
+          <div className="bg-gradient-to-r from-indigo-500 to-blue-500 h-1.5 w-full"></div>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-card-foreground">
+              <div className="h-9 w-9 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              Website Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-2">
+            <div className="space-y-2">
+              {isLoadingStats ? (
+                <div className="flex items-center justify-center h-20">
+                  <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Total Users Stat */}
+                  <div className="flex flex-col items-center justify-center p-2 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/30 dark:to-blue-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    <div className="h-8 w-8 bg-indigo-100 dark:bg-indigo-800 rounded-full flex items-center justify-center mb-1">
+                      <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-indigo-700 dark:text-indigo-300">{siteStats?.totalUsers || 0}</div>
+                      <div className="text-xs text-indigo-900 dark:text-indigo-400 font-medium">Users</div>
+                    </div>
+                  </div>
+                  
+                  {/* Total Collections Stat */}
+                  <div className="flex flex-col items-center justify-center p-2 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <div className="h-8 w-8 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mb-1">
+                      <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{siteStats?.totalCollections || 0}</div>
+                      <div className="text-xs text-blue-900 dark:text-blue-400 font-medium">Collections</div>
+                    </div>
+                  </div>
+                  
+                  {/* Total Cards Stat */}
+                  <div className="flex flex-col items-center justify-center p-2 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-lg border border-purple-100 dark:border-purple-800">
+                    <div className="h-8 w-8 bg-purple-100 dark:bg-purple-800 rounded-full flex items-center justify-center mb-1">
+                      <Database className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-purple-700 dark:text-purple-300">{siteStats?.totalCards || 0}</div>
+                      <div className="text-xs text-purple-900 dark:text-purple-400 font-medium">Cards Collected</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0 pb-3">
+            {/* Footer space maintained for consistent card heights */}
+          </CardFooter>
+        </Card>
+        
+        <Card className="bg-white dark:bg-gray-900 border border-[#e1e7ef] dark:border-gray-700 shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-[268px]">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-1.5 w-full"></div>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-gray-800 dark:text-gray-200">
+              <div className="h-9 w-9 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center">
+                <i className="fas fa-info-circle text-blue-600 dark:text-blue-400"></i>
+              </div>
+              Quick Help
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow pb-2">
+            <div className="space-y-3 text-sm mt-2">
+              <div className="flex items-start gap-2.5 group">
+                <div className="h-5 w-5 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60 transition-colors">
+                  <i className="fas fa-chevron-right text-blue-600 dark:text-blue-400 text-xs"></i>
+                </div>
+                <span className="text-gray-700 dark:text-gray-300">Browse sets in the sidebar</span>
+              </div>
+              <div className="flex items-start gap-2.5 group">
+                <div className="h-5 w-5 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60 transition-colors">
+                  <i className="fas fa-chevron-right text-blue-600 dark:text-blue-400 text-xs"></i>
+                </div>
+                <span className="text-gray-700 dark:text-gray-300">Click on cards to view details</span>
+              </div>
+              <div className="flex items-start gap-2.5 group">
+                <div className="h-5 w-5 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60 transition-colors">
+                  <i className="fas fa-chevron-right text-blue-600 dark:text-blue-400 text-xs"></i>
+                </div>
+                <span className="text-gray-700 dark:text-gray-300">Use search for specific cards</span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-1 pb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 font-medium"
+              onClick={() => {
+                // Help section
+                alert("Help documentation coming soon!");
+              }}
+            >
+              <i className="fas fa-question-circle mr-2"></i> View Full Help
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      {/* Featured Sets Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i className="fas fa-star text-secondary"></i> Featured Sets
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {featuredSets.map(set => (
+            <Card key={set.id} className="bg-card border-border overflow-hidden group cursor-pointer hover:border-primary transition-all"
+              onClick={() => setLocation(`/sets/${set.id}`)}
+            >
+              <div className="h-32 flex items-center justify-center p-4 bg-muted/20 overflow-hidden">
+                {set.images.logo ? (
+                  <img 
+                    src={set.images.logo} 
+                    alt={set.name} 
+                    className="max-h-20 w-auto object-contain group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <div className="text-muted-foreground">{set.name}</div>
+                )}
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-sm line-clamp-1">{set.name}</h3>
+                    <p className="text-xs text-muted-foreground">{set.releaseDate}</p>
+                  </div>
+                  {set.images.symbol && (
+                    <img 
+                      src={set.images.symbol} 
+                      alt="Set Symbol" 
+                      className="h-5 w-5 object-contain" 
+                    />
+                  )}
+                </div>
+              </CardContent>
+              <div className="px-4 pb-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent card click from triggering
+                    setLocation(`/sets/${set.id}`);
+                  }}
+                >
+                  <i className="fas fa-eye mr-1"></i> Browse Cards
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+      
+      {/* Featured Cards Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i className="fas fa-certificate text-accent"></i> Featured Cards
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {featuredCards.data && featuredCards.data.length > 0 ? (
+            featuredCards.data.map(card => (
+              <Card 
+                key={card.id} 
+                className="bg-card border-border overflow-hidden group cursor-pointer hover:border-primary transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (card.set?.id) {
+                    setLocation(`/sets/${card.set.id}#${card.id}`);
+                  }
+                }}
+              >
+                <div className="p-4 flex justify-center bg-muted/10 overflow-hidden">
+                  <img 
+                    src={card.images?.small || '/card-back.png'} 
+                    alt={card.name} 
+                    className="h-48 object-contain transition-all group-hover:scale-110"
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-medium truncate">{card.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{card.set?.name}</p>
+                </div>
+                <div className="p-4 pt-0 flex justify-between items-center">
+                  <div className="text-sm">
+                    <span className={card.rarity ? `rarity-${card.rarity.toLowerCase()}` : ''}>
+                      {card.rarity || 'Common'}
+                    </span>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCollection(card.id);
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-4 py-8 text-center text-muted-foreground">
+              <p>Loading featured cards...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Home;

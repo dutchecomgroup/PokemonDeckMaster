@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welkom bij TCG DeckMaster</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <a href="homepage.html"><i class="fas fa-dragon"></i> TCG DeckMaster</a>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="homepage.html" class="active"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="collection-manager.html"><i class="fas fa-archive"></i> Collectie Beheer</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="homepage-main-content">
+        <section class="hero-section-homepage">
+            <div class="container">
+                <h1>Jouw Pokémon Kaarten, Perfect Georganiseerd.</h1>
+                <p>Duik in je verzameling, ontdek elke kaart en beheer je sets als een ware meester.</p>
+                <div class="hero-actions">
+                    <a href="collection-manager.html" class="cta-button primary-cta"><i class="fas fa-folder-open"></i> Open Collectie Beheer</a>
+                    <a href="#myCollectionsSection" class="cta-button secondary-cta scroll-link"><i class="fas fa-list-alt"></i> Bekijk Mijn Collecties</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- NIEUW: Uitgelichte Kaarten uit Collecties -->
+        <section id="highlightedCardsSection" class="highlighted-cards-section container" style="display:none;">
+            <h2><i class="fas fa-sparkles"></i> Uitgelicht uit jouw Collecties</h2>
+            <div id="highlightedCardsGrid" class="card-grid homepage-card-grid compact-image-view">
+                <!-- Kaarten worden hier dynamisch geladen -->
+                <p class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Uitgelichte kaarten laden...</p>
+            </div>
+            <p id="noHighlightedCardsMessage" style="display:none; text-align:center; margin-top:1em;">
+                Voeg kaarten toe aan je collecties om ze hier uitgelicht te zien!
+            </p>
+        </section>
+
+        <!-- NIEUW: Ontdek Willekeurige Kaarten -->
+        <section id="discoverCardsSection" class="discover-cards-section container">
+            <h2><i class="fas fa-search-dollar"></i> Ontdek Nieuwe Kaarten</h2>
+            <div id="discoverCardsGrid" class="card-grid homepage-card-grid compact-image-view">
+                <!-- Kaarten worden hier dynamisch geladen -->
+                <p class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Willekeurige kaarten laden...</p>
+            </div>
+        </section>
+
+        <section id="myCollectionsSection" class="my-collections-overview-section container">
+            <h2><i class="fas fa-box-archive"></i> Mijn Opgeslagen Collecties</h2>
+            <div id="homepageCollectionsGrid" class="collections-grid">
+                <!-- Collectie kaarten worden hier geladen -->
+                <p class="no-collections-message" style="display:none;">Je hebt nog geen collecties aangemaakt. Ga naar <a href="collection-manager.html">Collectie Beheer</a> om te starten!</p>
+            </div>
+        </section>
+
+        <section class="features-overview-section container">
+            <h2><i class="fas fa-star"></i> Krachtige Functionaliteiten</h2>
+            <div class="features-grid-homepage">
+                <div class="feature-item-homepage">
+                    <i class="fas fa-search-plus fa-2x"></i>
+                    <h3>Uitgebreid Zoeken</h3>
+                    <p>Vind elke kaart met krachtige filters op naam, set, type en zeldzaamheid.</p>
+                </div>
+                <div class="feature-item-homepage">
+                    <i class="fas fa-layer-group fa-2x"></i>
+                    <h3>Set Browsing</h3>
+                    <p>Bekijk volledige sets en beheer direct welke kaarten je bezit.</p>
+                </div>
+                <div class="feature-item-homepage">
+                    <i class="fas fa-tasks fa-2x"></i>
+                    <h3>Progressie Tracking</h3>
+                    <p>Houd per set en per collectie bij hoe compleet je bent.</p>
+                </div>
+                <div class="feature-item-homepage">
+                    <i class="fas fa-columns fa-2x"></i>
+                    <h3>Flexibele Weergave</h3>
+                    <p>Wissel tussen gedetailleerde en compacte kaartoverzichten.</p>
+                </div>
+            </div>
+        </section>
+         <section class="call-to-action-bottom container">
+            <h2>Klaar om je verzameling te meesteren?</h2>
+            <p>TCG DeckMaster is ontworpen voor en door verzamelaars. Start vandaag nog!</p>
+            <a href="collection-manager.html" class="cta-button primary-cta large-cta"><i class="fas fa-rocket"></i> Start Nu!</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span id="currentYear"></span> TCG DeckMaster. Data via <a href="https://pokemontcg.io" target="_blank" rel="noopener noreferrer">pokemontcg.io</a>.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notificatie (kan gedeeld worden of specifiek per pagina) -->
+    <div id="toastNotification" class="toast-notification">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="homepage.js"></script>
+</body>
+</html>

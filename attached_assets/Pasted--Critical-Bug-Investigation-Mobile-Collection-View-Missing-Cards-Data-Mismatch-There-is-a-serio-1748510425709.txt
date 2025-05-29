@@ -1,0 +1,58 @@
+🧪 Critical Bug Investigation: Mobile Collection View Missing Cards (Data Mismatch)
+There is a serious inconsistency between the desktop and mobile versions of the collection view, and it appears to be a data rendering or filtering bug specific to mobile.
+
+🔍 Specific Observations:
+On desktop, my collection correctly shows 4 cards.
+
+On mobile, the preview (3-card summary) also appears accurate — showing 3 of those cards.
+
+But when I open the full collection view on mobile, only 2 cards are displayed.
+
+✅ What This Tells Us:
+The backend is saving all cards correctly.
+
+The mobile preview component uses correct data.
+
+The issue is isolated to the rendering or data logic in the mobile full collection view.
+
+🔍 Deep Debug Targets:
+1. Mobile Fetching Logic
+Ensure that the mobile collection view actually retrieves all cards in the collection, not a limited subset.
+
+Double-check pagination, slice, or filtering conditions — e.g., collection.cards.slice(0, 2) might still exist from preview logic.
+
+2. Data Source Differences
+The preview and full collection views may use different sources or queries.
+
+Example: preview might pull directly from state or API, while detail view might depend on stale cached data.
+
+3. Screen-Dependent Logic
+Look for conditional rendering based on screen width (window.innerWidth, matchMedia, etc.) that may inadvertently limit results on smaller devices.
+
+4. Hidden UI Elements or Rendering Blockers
+The missing cards may be in the DOM but hidden, due to:
+
+Overflow issues
+
+Flex/grid layout problems
+
+Conditional styling like display: none or visibility: hidden
+
+5. Card Identity / Mapping Bug
+Check if the cards not showing have anything in common:
+
+Different structure, missing fields, or key mismatches.
+
+Possibly they're not passing required props to render fully.
+
+✅ What Needs to Be Fixed:
+The mobile collection view must re-fetch the entire collection state, using the same logic as desktop.
+
+Remove any hard-coded limits, preview constraints, or layout conditions affecting rendering.
+
+Add a visual fallback for debugging: show how many cards are expected vs. shown to detect mismatches in future.
+
+🎯 Goal:
+The collection view on mobile should show exactly the same cards as desktop.
+
+The preview, detail view, and backend data must all stay in sync — with no hidden or skipped cards.

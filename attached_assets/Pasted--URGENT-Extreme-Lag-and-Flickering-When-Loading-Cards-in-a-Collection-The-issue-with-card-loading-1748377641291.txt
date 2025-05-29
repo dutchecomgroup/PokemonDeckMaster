@@ -1,0 +1,66 @@
+🐛 URGENT: Extreme Lag and Flickering When Loading Cards in a Collection
+The issue with card loading is still not fixed, and the experience has become severely slow and unstable — especially when viewing a full collection.
+
+❌ Current Behavior:
+When loading the collection view:
+
+Each card flashes in and out repeatedly, sometimes up to 10 times per card.
+
+It takes an extremely long time for all cards to settle and render properly.
+
+The page becomes visually chaotic — feels like a broken loading loop.
+
+This happens even with only a moderate number of cards in the collection.
+
+🔍 Likely Causes:
+1. Multiple Re-renders per Card
+The component responsible for rendering each card may be re-rendering unnecessarily, perhaps due to:
+
+State being updated globally on each card addition or fetch.
+
+No React.memo() or key-based optimization used in lists.
+
+Each card triggering its own fetch or update instead of using batched data.
+
+2. Inefficient Data Fetching
+Cards may be fetched individually rather than in bulk.
+
+If each card fetch is asynchronous and uncoordinated, it causes dozens of updates and DOM redraws.
+
+3. Poor Image Load Handling
+If image loads trigger layout shifts or forced updates, this can lead to flashing/flickering behavior.
+
+No image caching or preload strategy in place.
+
+4. Incorrect use of useEffect, setState, or rendering keys
+A re-fetch loop or an uncontrolled useEffect might be causing cards to load, unload, then reload again.
+
+✅ Fix Recommendations:
+1. Batch Load Cards
+Fetch all cards in the collection in one request, not per card.
+
+Use a single state update to populate the full grid.
+
+2. Optimize Component Rendering
+Use React.memo() or equivalent to prevent unnecessary re-renders of unchanged cards.
+
+Avoid using dynamic key props that change on every render — use stable IDs.
+
+3. Use Centralized State & Efficient Grid Rendering
+Consider using virtualization libraries (like react-window) if the card list is large.
+
+Store and update all card data at once, not per item.
+
+4. Improve Image Handling
+Use loading="lazy" for image tags.
+
+Preload image URLs if known ahead of time.
+
+Use skeletons instead of full reflows when loading cards.
+
+🎯 Goal:
+Cards should render once and stay stable, without flashing or bouncing.
+
+The entire collection should load smoothly within seconds, even for many cards.
+
+The UI should not re-render cards repeatedly unless data has changed.
