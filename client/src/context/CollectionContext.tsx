@@ -374,50 +374,43 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
     console.log(`[MOBILE DEBUG] Active collection ${activeCollection.id}: ${activeCards.length} cards in database`);
     console.log(`[MOBILE DEBUG] Cards cache size: ${Object.keys(cardsCache).length}`);
     
-    // If cache is empty, trigger card fetching for missing cards
-    if (Object.keys(cardsCache).length === 0 && activeCards.length > 0) {
-      console.log(`[MOBILE DEBUG] Cache empty, triggering card fetches for ${activeCards.length} cards`);
+    // Map to card objects with quantity - always show cards, even if loading
+    const mappedCards = activeCards.map((collectionCard: CollectionCard) => {
+      const cardData = cardsCache[collectionCard.cardId];
       
-      // Fetch missing cards asynchronously
-      activeCards.forEach(async (collectionCard) => {
-        try {
-          const cardData = await fetchCard(collectionCard.cardId);
-          if (cardData) {
+      if (!cardData) {
+        // Trigger fetch for missing card data asynchronously
+        fetchCard(collectionCard.cardId).then(fetchedCard => {
+          if (fetchedCard) {
             setCardsCache(prev => ({
               ...prev,
-              [collectionCard.cardId]: cardData
+              [collectionCard.cardId]: fetchedCard
             }));
           }
-        } catch (error) {
+        }).catch(error => {
           console.error(`Failed to fetch card ${collectionCard.cardId}:`, error);
-        }
-      });
-      
-      // Return empty for now, cards will display once fetched
-      return [];
-    }
-    
-    // Map to card objects with quantity, filtering out cards without data
-    const mappedCards = activeCards
-      .map((collectionCard: CollectionCard) => {
-        const cardData = cardsCache[collectionCard.cardId];
+        });
         
-        if (!cardData) {
-          // Debug: Log missing cards on mobile
-          console.log(`[MOBILE DEBUG] Missing card data for ${collectionCard.cardId} in cache`);
-          return null;
-        }
-        
+        // Return placeholder card so collection shows all cards immediately
         return {
-          ...cardData,
+          id: collectionCard.cardId,
+          name: 'Loading...',
+          number: '',
+          images: { small: '', large: '' },
           quantity: collectionCard.quantity,
-          setId: cardData.set?.id || '',
+          setId: '',
           collectionId: collectionCard.collectionId
         } as Card;
-      })
-      .filter((card): card is Card => card !== null);
+      }
+      
+      return {
+        ...cardData,
+        quantity: collectionCard.quantity,
+        setId: cardData.set?.id || '',
+        collectionId: collectionCard.collectionId
+      } as Card;
+    });
     
-    console.log(`[MOBILE DEBUG] Final mapped cards: ${mappedCards.length} of ${activeCards.length}`);
     return mappedCards;
   };
   
